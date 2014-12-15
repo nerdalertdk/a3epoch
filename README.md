@@ -1,4 +1,4 @@
-a3epoch
+Scripts for Arma 3 Epoch
 =======
 
-Bit's and Bobs to Eoch A3
+fillshop.php - Add/update treader items
