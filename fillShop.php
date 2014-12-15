@@ -1,12 +1,18 @@
 <?php
+ini_set('display_errors', 0); 
+error_reporting(E_ALL);
+
+
 $traders = new Traders();
-$traders->setEpochInstace(1);
-$traders->setPassword("");
+$traders->setRedisInstace(1); // Sets in redi.conf
+$traders->setEpochInstace(1); // Sets in epochserver.ini
+$traders->setPassword(""); // Database password set in redi.conf
 $traders->setItemArray(array(
 	'CircuitParts','ItemScraps','ItemCorrugated','ItemCorrugatedLg','CinderBlocks','MortarBucket','WoodLog_EPOCH','PartPlankPack',
 	'C_Quadbike_01_EPOCH',
 	'ItemTunaCooked','CookedGoat_EPOCH','ItemSodaRbull','WhiskeyNoodle'
 	));
+$traders->connectDb();
 echo $traders->updateStock();
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -17,27 +23,25 @@ class Traders{
 	private $redis 			= null;
 	
 	private $epochInstace 	= 0;
+	private $redisInstace 	= 0;
 	private $stockMin 		= 0;
 	private $stockMax 		= 2;
 	private $itemarray		= array();
-	private $dbpasss		= "";
+	private $dbpasss		= false;
 	
-	function __construct(){
-		// Connect to database
-		try{
-			$this->redis = new Redis();
-			$this->redis->connect('127.0.0.1', 6379);
-			$this->redis->auth($this->dbpasss);
-			$this->redis->select(1);
-		} catch( Exception $e ){ 
-			echo $e->getMessage(); 
-		}
-	}
+	function __construct(){}
 	function __destruct(){
-		$this->redis->close();
+		//$this->redis->close();
 		$this->redis = null;
 	}
 	
+	public function setRedisInstace($int){
+		if(is_int($int)) {
+			$this->redisInstace = $int;
+		} else {
+			die("redisInstace is not an integer");
+		}
+	}
 	public function setEpochInstace($int){
 		if(is_int($int)) {
 			$this->epochInstace = $int;
@@ -69,65 +73,73 @@ class Traders{
 			$this->dbpasss = $pass;
 	}
 	
+	public function connectDb(){
+		$this->redis = new Redis();
+		$this->redis->connect('127.0.0.1', 6379);
+		$this->redis->auth($this->dbpasss);
+		$this->redis->select($this->redisInstace);
+		
+		if(!$this->redis->ping()){
+			die( "Cannot connect to redis server.\n" );
+		}
+	}
+	
 	public function updateStock(){
 		// Get trader item
-		try{
-			$AI_ITEMS = $this->redis->keys( 'AI_ITEMS:'.$this->epochInstace.':*' );
-		} catch( Exception $e ){ 
-			echo $e->getMessage(); 
-		}
-		echo $number = count($AI_ITEMS). " Traders\n";
+		$AI_ITEMS = $this->redis->keys( 'AI_ITEMS:'.$this->epochInstace.':*' );
 		
 		/* *
 		 * Loops through  all traders
 		 * */
-		foreach($AI_ITEMS AS $trader){
-			echo "\nTRADER ID: ".$trader;
-			
-			// Get items array
-			try{
-				$trader_items = json_decode($this->redis->GET($trader),true);
-			} catch( Exception $e ){ 
-				echo $e->getMessage(); 
-			}
-			
-			// if trader is empty, create need arrays
-			if(count($trader_items) != 2){
-					$trader_items = array(array(),array());
-			}
-			
-			/* *
-			 *  Item exists update stock
-			 *  else craete item with stock
-			 * */ 
-			foreach($this->itemarray AS $item) {
-		
-				if(in_array ( $item , $trader_items[0])) {
-					// Find item id
-					$key = array_search($item, $trader_items[0]);
-					if($key !== false) {
-						// Update item stock
-						$trader_items[1][$key] = rand($this->stockMin,$this->stockMax);
-						echo "\n\tUpdatede ".$trader_items[0][$key]."/".rand($this->stockMin,$this->stockMax);
+		if($AI_ITEMS) {
+			echo $number = count($AI_ITEMS). " Traders\n";
+			foreach($AI_ITEMS AS $trader){
+				echo "\nTRADER ID: ".$trader;
+				
+				// Get items array
+				$trader_items = $this->redis->GET($trader);
+				if($trader_items){
+					$trader_items = json_decode($trader_items,true);
+					
+					// if trader is empty, create need arrays
+					if(count($trader_items) != 2){
+							$trader_items = array(array(),array());
 					}
+					
+					/* *
+					 *  Item exists update stock
+					 *  else craete item with stock
+					 * */ 
+					foreach($this->itemarray AS $item) {
+				
+						if(in_array ( $item , $trader_items[0])) {
+							// Find item id
+							$key = array_search($item, $trader_items[0]);
+							if($key !== false) {
+								// Update item stock
+								$trader_items[1][$key] = rand($this->stockMin,$this->stockMax);
+								echo "\n\tUpdatede ".$trader_items[0][$key]."/".rand($this->stockMin,$this->stockMax);
+							}
+						} else {
+							// Create item
+							array_push($trader_items[0],$item);
+							// Find item ID, stock id must match item id
+							$key = array_search($item, $trader_items[0]);
+							// Create Stock with item ID
+							if($key !== false) {
+								$trader_items[1][$key] = rand($this->stockMin,$this->stockMax);
+								echo "\n\tCreated ".$trader_items[0][$key]."/".rand($this->stockMin,$this->stockMax);
+							}
+						}
+					}
+					// Save to database.
+					$this->redis->set($trader, json_encode($trader_items));
 				} else {
-					// Create item
-					array_push($trader_items[0],$item);
-					// Find item ID, stock id must match item id
-					$key = array_search($item, $trader_items[0]);
-					// Create Stock with item ID
-					if($key !== false) {
-						$trader_items[1][$key] = rand($this->stockMin,$this->stockMax);
-						echo "\n\tCreated ".$trader_items[0][$key]."/".rand($this->stockMin,$this->stockMax);
-					}
+					echo ("Error gettting item list");
 				}
 			}
-			// Save to database.
-			try {	
-				$this->redis->set($trader, json_encode($trader_items));
-			} catch( Exception $e ){ 
-				echo $e->getMessage(); 
-			}
+		} else {
+			echo ("No traders");
 		}
 	}
 }
