@@ -19,7 +19,7 @@ $bank->Interest();
 //$bank->forbesTop10();
 
 // Debug
-ec///ho $bank->dbError();
+// echo $bank->dbError();
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * 					DON' T EDIT BELOW THIS LINE				   *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
