@@ -1,30 +1,20 @@
 <?php
 /* *
  *  @file fillShop.php
- *  @brief Ctreatede by itsatrap
+ *  @brief Brief
  * */
 ini_set('display_errors', 0); 
 error_reporting(E_ALL);
 
 $traders = new Traders();
-$traders->setRedisInstace(1); // Sets in epochserver.ini
-$traders->setEpochInstace(''); // Sets in epochserver.ini / if empty all instance get updatede
-$traders->setChance(1); // % for rare item spawn
-$traders->setPassword(""); // Database password set in redi.conf
-/* *
- * Building 
- * Vehicles
- * Food
- * Backpack
- * Vests
- * Cloth
- * Items
- * */
+$traders->setRedisInstance(1); 			// Sets in epochserver.ini
+$traders->setEpochInstance(''); 		// Sets in epochserver.ini Empty = all instance
+$traders->setChance(1); 				// Chance for rare item in % - 1 - 100%
+$traders->setPassword("[PASSWORD]"); 	// Database password set in redi.conf
+
 $traders->setItemArray(array(
 	'CircuitParts','ItemScraps','ItemCorrugated','ItemCorrugatedLg','CinderBlocks','MortarBucket','WoodLog_EPOCH','PartPlankPack',
-	'C_Quadbike_01_EPOCH',
 	'CookedGoat_EPOCH','ItemSodaRbull','WhiskeyNoodle','sweetcorn_epoch',
-	'smallbackpack_pink_epoch',
 	'V_4_EPOCH',
 	'FAK'
 ));
@@ -42,7 +32,7 @@ $traders->connectDb();
 echo $traders->updateStock();
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * 		DON' T EDIT BELOW THIS LINE			*
+ * 					DON' T EDIT BELOW THIS LINE				   *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
  
  /* *
@@ -54,8 +44,8 @@ class Traders{
 	// Database
 	private $redis 			= null;
 	private $dbpasss		= false;
-	private $epochInstace 		= 0;
-	private $redisInstace 		= 0;
+	private $epochInstance 	= 0;
+	private $redisInstance 	= 0;
 	
 	// Amount
 	private $stockMin 		= 0;
@@ -89,11 +79,11 @@ class Traders{
 	 *  
 	 *  @details Details
 	 * */
-	public function setRedisInstace($int){
+	public function setRedisInstance($int){
 		if(is_int($int)) {
-			$this->redisInstace = $int;
+			$this->redisInstance = $int;
 		} else {
-			die("redisInstace is not an integer");
+			die("redisInstance is not an integer");
 		}
 	}
 	/* *
@@ -104,13 +94,13 @@ class Traders{
 	 *  
 	 *  @details Details
 	 * */
-	public function setEpochInstace($int){
+	public function setEpochInstance($int){
 		if(is_int($int) || $int == '*') {
-			$this->epochInstace = $int;
+			$this->epochInstance = $int;
 		} elseif(empty($int)){
-			$this->epochInstace = '*';
+			$this->epochInstance = '*';
 		} else {
-			die("epochInstace is not an integer or *");
+			die("epochInstance is not an integer or *");
 		}
 	}
 	/* *
@@ -227,7 +217,7 @@ class Traders{
 		$this->redis = new Redis();
 		$this->redis->connect('127.0.0.1', 6379);
 		$this->redis->auth($this->dbpasss);
-		$this->redis->select($this->redisInstace);
+		$this->redis->select($this->redisInstance);
 		
 		if(!$this->redis->ping()){
 			die( "Cannot connect to redis server.\n" );
@@ -243,7 +233,7 @@ class Traders{
 	 * */
 	public function updateStock(){
 		// Get trader item
-		$AI_ITEMS = $this->redis->keys( 'AI_ITEMS:'.$this->epochInstace.':*' );
+		$AI_ITEMS = $this->redis->keys( 'AI_ITEMS:'.$this->epochInstance.':*' );
 		
 		/* *
 		 * Loops through  all traders
@@ -315,12 +305,6 @@ class Traders{
 									echo "\n\tRare Created ".$trader_items[0][$key]."/1";
 								}
 							}
-							/*if(!array_key_exists($key,$trader_items[1])){
-									echo $key." findes ikke";
-									array_push($trader_items[1],$key);
-							}*/
-							//print_r($trader_items[0]);
-							//print_r($trader_items[1]);
 						}
 					}
 					
@@ -346,8 +330,6 @@ class Traders{
 						// Save to database.
 						$this->redis->set($trader, json_encode($trader_items));
 					}
-					
-					
 				} else {
 					echo ("Error getting item list");
 				}

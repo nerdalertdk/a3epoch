@@ -8,4 +8,16 @@ Scripts for Arma 3 Epoch
 * PHP igbinary (http://windows.php.net/downloads/pecl/releases/igbinary/1.1.1/)
 
 ######Scripts:######
-* fillshop.php - Add/update treader items
+* fillshop.bat - Add/update treader items
+* bank.bat - Interrest on players money in the bank
+
+######Install:######
+* Make sure you have PHP install in C:\php with the ext. listed above 
+
+######License:######
+All the code and information provided here is provided under an Attribution Non-Commercial ShareAlike 4.0 Commons License.
+
+http://creativecommons.org/licenses/by-nc-sa/4.0/
+
+######Dev team:######
+- Developer **nerdalertdk**
